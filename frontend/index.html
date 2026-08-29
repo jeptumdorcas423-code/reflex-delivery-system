@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Reflex Delivery System</title>
+
+    <!-- QR SCANNER LIBRARY -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #1f2937;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        header p {
+            margin: 6px 0 0;
+            color: #d1d5db;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(320px, 1fr)
+            );
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 11px;
+            margin-top: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .delivery {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 12px;
+            border-radius: 8px;
+        }
+
+        .status {
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            background: #eef2ff;
+        }
+
+        .sync {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        /* ==============================
+           QR CODE SECTION
+        ============================== */
+
+        .qr-section {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px dashed #2563eb;
+            border-radius: 10px;
+            text-align: center;
+            background: #f8fafc;
+        }
+
+        .qr-section h3 {
+            margin-top: 0;
+        }
+
+        .qr-section img {
+            width: 220px;
+            height: 220px;
+            max-width: 100%;
+            margin: 15px auto;
+            display: block;
+            border: 8px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        .order-code-display {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .download-button {
+            background: #16a34a;
+        }
+
+        .download-button:hover {
+            background: #15803d;
+        }
+
+        /* ==============================
+           QR SCANNER
+        ============================== */
+
+        #qr-reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 15px auto;
+            display: none;
+        }
+
+        #qr-reader video {
+            border-radius: 10px;
+        }
+
+        .scanner-button {
+            background: #7c3aed;
+        }
+
+        .scanner-button:hover {
+            background: #6d28d9;
+        }
+
+        .stop-scanner-button {
+            background: #dc2626;
+            display: none;
+        }
+
+        .stop-scanner-button:hover {
+            background: #b91c1c;
+        }
+
+        /* ==============================
+           STATUS COLORS
+        ============================== */
+
+        .status-open {
+            color: #2563eb;
+        }
+
+        .status-assigned {
+            color: #d97706;
+        }
+
+        .status-picked {
+            color: #7c3aed;
+        }
+
+        .status-delivered {
+            color: #16a34a;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Reflex</h1>
+    <p>Delivery Management System</p>
+</header>
+
+<div class="container">
+
+    <!-- ==============================
+         RETAILER + CONFIRMATION
+    ============================== -->
+
+    <div class="grid">
+
+        <!-- RETAILER -->
+
+        <div class="card">
+
+            <h2>Retailer</h2>
+
+            <input
+                id="customerName"
+                placeholder="Customer name"
+            >
+
+            <input
+                id="customerPhone"
+                placeholder="Customer phone"
+            >
+
+            <input
+                id="customerAddress"
+                placeholder="Customer address"
+            >
+
+            <input
+                id="itemDescription"
+                placeholder="Item description"
+            >
+
+            <button onclick="createDelivery()">
+                Create Delivery
+            </button>
+
+            <div
+                id="createMessage"
+                class="message"
+            ></div>
+
+            <!-- CUSTOMER QR CODE -->
+
+            <div
+                id="qrContainer"
+                class="qr-section"
+            >
+
+                <h3>📱 Customer QR Code</h3>
+
+                <p>
+                    Give this QR code to the customer.
+                </p>
+
+                <img
+                    id="qrImage"
+                    src=""
+                    alt="Order QR Code"
+                >
+
+                <div class="order-code-display">
+
+                    Order Code:
+
+                    <span id="qrOrderCode"></span>
+
+                </div>
+
+                <button
+                    class="download-button"
+                    onclick="downloadQR()"
+                >
+                    Download QR Code
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ORDER CONFIRMATION -->
+
+        <div class="card">
+
+            <h2>Order Confirmation</h2>
+
+            <p>
+                Scan the customer's QR code
+                or enter the order code manually.
+            </p>
+
+            <input
+                id="orderCode"
+                placeholder="Example: ORD-B685F04C"
+            >
+
+            <button
+                class="scanner-button"
+                onclick="startScanner()"
+            >
+                📱 Scan Customer QR Code
+            </button>
+
+            <div id="qr-reader"></div>
+
+            <button
+                id="stopScannerButton"
+                class="stop-scanner-button"
+                onclick="stopScanner()"
+            >
+                ✖ Stop Scanner
+            </button>
+
+            <button onclick="confirmOrder()">
+                ✅ Confirm Order
+            </button>
+
+            <div
+                id="confirmMessage"
+                class="message"
+            ></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ==============================
+         DISPATCHER DASHBOARD
+    ============================== -->
+
+    <div
+        class="card"
+        style="margin-top:20px;"
+    >
+
+        <h2>Dispatcher Dashboard</h2>
+
+        <div class="sync">
+            🔄 Automatically syncing every 5 seconds
+        </div>
+
+        <div id="deliveries">
+            Loading deliveries...
+        </div>
+
+    </div>
+
+
+    <!-- ==============================
+         RIDER
+    ============================== -->
+
+    <div
+        class="card"
+        style="margin-top:20px;"
+    >
+
+        <h2>Rider</h2>
+
+        <input
+            id="riderDeliveryId"
+            placeholder="Delivery ID"
+        >
+
+        <input
+            id="riderId"
+            placeholder="Rider ID e.g. R001"
+        >
+
+        <button onclick="assignRider()">
+            🚚 Assign Rider
+        </button>
+
+        <button onclick="updateStatus('Picked Up')">
+            📦 Mark Picked Up
+        </button>
+
+        <div
+            id="riderMessage"
+            class="message"
+        ></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const API = "http://127.0.0.1:8000";
+
+let html5QrCode = null;
+
+
+/* =========================================
+   CREATE DELIVERY
+========================================= */
+
+async function createDelivery() {
+
+    const data = {
+
+        customer_name:
+            document.getElementById(
+                "customerName"
+            ).value.trim(),
+
+        customer_phone:
+            document.getElementById(
+                "customerPhone"
+            ).value.trim(),
+
+        customer_address:
+            document.getElementById(
+                "customerAddress"
+            ).value.trim(),
+
+        item_description:
+            document.getElementById(
+                "itemDescription"
+            ).value.trim()
+    };
+
+
+    if (
+        !data.customer_name ||
+        !data.customer_phone ||
+        !data.customer_address ||
+        !data.item_description
+    ) {
+
+        document.getElementById(
+            "createMessage"
+        ).innerText =
+            "Please fill in all delivery details.";
+
+        return;
+    }
+
+
+    try {
+
+        const response = await fetch(
+            `${API}/deliveries`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify(data)
+            }
+        );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            document.getElementById(
+                "createMessage"
+            ).innerText =
+                "Unable to create delivery.";
+
+            return;
+        }
+
+
+        document.getElementById(
+            "createMessage"
+        ).innerText =
+            result.message +
+            " | Order: " +
+            result.delivery.order_code;
+
+
+        /* Show QR code */
+
+        if (result.delivery) {
+
+            const orderCode =
+                result.delivery.order_code;
+
+
+            document.getElementById(
+                "qrImage"
+            ).src =
+                `${API}/deliveries/order/${encodeURIComponent(orderCode)}/qr`;
+
+
+            document.getElementById(
+                "qrOrderCode"
+            ).innerText =
+                orderCode;
+
+
+            document.getElementById(
+                "qrContainer"
+            ).style.display =
+                "block";
+        }
+
+
+        loadDeliveries();
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "createMessage"
+        ).innerText =
+            "Unable to connect to backend.";
+    }
+}
+
+
+/* =========================================
+   DOWNLOAD QR CODE
+========================================= */
+
+function downloadQR() {
+
+    const qrImage =
+        document.getElementById(
+            "qrImage"
+        );
+
+
+    const orderCode =
+        document.getElementById(
+            "qrOrderCode"
+        ).innerText;
+
+
+    if (!qrImage.src || !orderCode) {
+
+        alert(
+            "No QR code available."
+        );
+
+        return;
+    }
+
+
+    const link =
+        document.createElement("a");
+
+
+    link.href =
+        qrImage.src;
+
+
+    link.download =
+        `${orderCode}-QR.png`;
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+}
+
+
+/* =========================================
+   START QR SCANNER
+========================================= */
+
+async function startScanner() {
+
+    const reader =
+        document.getElementById(
+            "qr-reader"
+        );
+
+
+    const stopButton =
+        document.getElementById(
+            "stopScannerButton"
+        );
+
+
+    reader.style.display =
+        "block";
+
+
+    stopButton.style.display =
+        "block";
+
+
+    document.getElementById(
+        "confirmMessage"
+    ).innerText =
+        "📷 Starting camera...";
+
+
+    try {
+
+        if (html5QrCode) {
+
+            await stopScanner();
+        }
+
+
+        html5QrCode =
+            new Html5Qrcode(
+                "qr-reader"
+            );
+
+
+        await html5QrCode.start(
+
+            {
+                facingMode: "environment"
+            },
+
+            {
+                fps: 10,
+
+                qrbox: {
+                    width: 250,
+                    height: 250
+                }
+            },
+
+            onScanSuccess,
+
+            onScanFailure
+        );
+
+
+        document.getElementById(
+            "confirmMessage"
+        ).innerText =
+            "📷 Point the camera at the customer's QR code.";
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "confirmMessage"
+        ).innerText =
+            "Unable to access camera. Please allow camera permission.";
+    }
+}
+
+
+/* =========================================
+   QR SCAN SUCCESS
+========================================= */
+
+async function onScanSuccess(
+    decodedText,
+    decodedResult
+) {
+
+    console.log(
+        "QR scanned:",
+        decodedText
+    );
+
+
+    const orderCode =
+        decodedText.trim();
+
+
+    document.getElementById(
+        "orderCode"
+    ).value =
+        orderCode;
+
+
+    document.getElementById(
+        "confirmMessage"
+    ).innerText =
+        "✅ QR code scanned: " +
+        orderCode;
+
+
+    await stopScanner();
+
+
+    lookupOrder(orderCode);
+}
+
+
+/* =========================================
+   QR SCAN FAILURE
+========================================= */
+
+function onScanFailure(error) {
+
+    /*
+        The scanner continuously checks
+        the camera image.
+
+        We intentionally do not display
+        an error for every unsuccessful scan.
+    */
+}
+
+
+/* =========================================
+   STOP QR SCANNER
+========================================= */
+
+async function stopScanner() {
+
+    const reader =
+        document.getElementById(
+            "qr-reader"
+        );
+
+
+    const stopButton =
+        document.getElementById(
+            "stopScannerButton"
+        );
+
+
+    try {
+
+        if (
+            html5QrCode &&
+            html5QrCode.isScanning
+        ) {
+
+            await html5QrCode.stop();
+        }
+
+
+        if (html5QrCode) {
+
+            html5QrCode.clear();
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Scanner stop error:",
+            error
+        );
+    }
+
+
+    reader.style.display =
+        "none";
+
+
+    stopButton.style.display =
+        "none";
+
+
+    html5QrCode = null;
+}
+
+
+/* =========================================
+   LOOK UP ORDER
+========================================= */
+
+async function lookupOrder(
+    orderCode
+) {
+
+    if (!orderCode) {
+
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API}/deliveries/order/${encodeURIComponent(orderCode)}`
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (
+            result.message ===
+            "Order not found"
+        ) {
+
+            document.getElementById(
+                "confirmMessage"
+            ).innerText =
+                "❌ Order not found.";
+
+            return;
+        }
+
+
+        document.getElementById(
+            "confirmMessage"
+        ).innerText =
+            "✅ Order found: " +
+            result.customer_name +
+            " | Status: " +
+            result.status;
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "confirmMessage"
+        ).innerText =
+            "Unable to connect to backend.";
+    }
+}
+
+
+/* =========================================
+   LOAD DELIVERIES
+========================================= */
+
+async function loadDeliveries() {
+
+    try {
+
+        const response =
+            await fetch(
+                `${API}/deliveries`
+            );
+
+
+        const result =
+            await response.json();
+
+
+        const container =
+            document.getElementById(
+                "deliveries"
+            );
+
+
+        container.innerHTML = "";
+
+
+        if (
+            !result.deliveries ||
+            result.deliveries.length === 0
+        ) {
+
+            container.innerHTML =
+                "<p>No deliveries found.</p>";
+
+            return;
+        }
+
+
+        result.deliveries.forEach(
+            delivery => {
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                div.className =
+                    "delivery";
+
+
+                let statusClass =
+                    "";
+
+
+                if (
+                    delivery.status ===
+                    "Open"
+                ) {
+
+                    statusClass =
+                        "status-open";
+
+                } else if (
+                    delivery.status ===
+                    "Assigned"
+                ) {
+
+                    statusClass =
+                        "status-assigned";
+
+                } else if (
+                    delivery.status ===
+                    "Picked Up"
+                ) {
+
+                    statusClass =
+                        "status-picked";
+
+                } else if (
+                    delivery.status ===
+                    "Delivered"
+                ) {
+
+                    statusClass =
+                        "status-delivered";
+                }
+
+
+                div.innerHTML = `
+
+                    <strong>
+                        ${delivery.customer_name}
+                    </strong>
+
+                    <br><br>
+
+                    Order Code:
+                    ${delivery.order_code}
+
+                    <br>
+
+                    Phone:
+                    ${delivery.customer_phone}
+
+                    <br>
+
+                    Address:
+                    ${delivery.customer_address}
+
+                    <br>
+
+                    Item:
+                    ${delivery.item_description}
+
+                    <br>
+
+                    Status:
+                    <span class="status ${statusClass}">
+                        ${delivery.status}
+                    </span>
+
+                    <br>
+
+                    Rider:
+                    ${delivery.rider_id || "Not assigned"}
+
+                    <br>
+
+                    ID:
+                    ${delivery.id}
+
+                `;
+
+
+                container.appendChild(div);
+
+            }
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "deliveries"
+        ).innerHTML =
+            "Unable to connect to backend.";
+    }
+}
+
+
+/* =========================================
+   ASSIGN RIDER
+========================================= */
+
+async function assignRider() {
+
+    const deliveryId =
+        document.getElementById(
+            "riderDeliveryId"
+        ).value.trim();
+
+
+    const riderId =
+        document.getElementById(
+            "riderId"
+        ).value.trim();
+
+
+    if (!deliveryId || !riderId) {
+
+        document.getElementById(
+            "riderMessage"
+        ).innerText =
+            "Please enter Delivery ID and Rider ID.";
+
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API}/deliveries/${encodeURIComponent(deliveryId)}/assign?rider_id=${encodeURIComponent(riderId)}`,
+                {
+                    method: "POST"
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        document.getElementById(
+            "riderMessage"
+        ).innerText =
+            result.message;
+
+
+        loadDeliveries();
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "riderMessage"
+        ).innerText =
+            "Unable to connect to backend.";
+    }
+}
+
+
+/* =========================================
+   UPDATE DELIVERY STATUS
+========================================= */
+
+async function updateStatus(
+    status
+) {
+
+    const deliveryId =
+        document.getElementById(
+            "riderDeliveryId"
+        ).value.trim();
+
+
+    if (!deliveryId) {
+
+        document.getElementById(
+            "riderMessage"
+        ).innerText =
+            "Please enter Delivery ID.";
+
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API}/deliveries/${encodeURIComponent(deliveryId)}/status?status=${encodeURIComponent(status)}`,
+                {
+                    method: "POST"
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        document.getElementById(
+            "riderMessage"
+        ).innerText =
+            result.message;
+
+
+        loadDeliveries();
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "riderMessage"
+        ).innerText =
+            "Unable to connect to backend.";
+    }
+}
+
+
+/* =========================================
+   CONFIRM ORDER
+========================================= */
+
+async function confirmOrder() {
+
+    const orderCode =
+        document.getElementById(
+            "orderCode"
+        ).value.trim();
+
+
+    if (!orderCode) {
+
+        document.getElementById(
+            "confirmMessage"
+        ).innerText =
+            "Please scan a QR code or enter an order code.";
+
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API}/deliveries/order/${encodeURIComponent(orderCode)}/confirm`,
+                {
+                    method: "POST"
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        document.getElementById(
+            "confirmMessage"
+        ).innerText =
+            result.message;
+
+
+        loadDeliveries();
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "confirmMessage"
+        ).innerText =
+            "Unable to connect to backend.";
+    }
+}
+
+
+/* =========================================
+   INITIAL LOAD
+========================================= */
+
+loadDeliveries();
+
+
+/* =========================================
+   AUTOMATIC SYNC
+========================================= */
+
+setInterval(
+    loadDeliveries,
+    5000
+);
+
+</script>
+
+</body>
+</html>
